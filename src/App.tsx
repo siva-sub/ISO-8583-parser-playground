@@ -24,7 +24,7 @@ import {
     Progress,
     RingProgress,
 } from '@mantine/core';
-import { useDebouncedValue } from '@mantine/hooks';
+import { useDebouncedValue, useMediaQuery } from '@mantine/hooks';
 import {
     IconAlertTriangle,
     IconCheck,
@@ -335,6 +335,7 @@ function maskPAN(value: string): string {
 
 // ─── Message Statistics ───────────────────────────────────────────
 function MessageStats({ result }: { result: ParseResult }) {
+    const isMobile = useMediaQuery('(max-width: 768px)');
     const stats = useMemo(() => {
         const categoryCount: Record<string, number> = {};
         const categoryBytes: Record<string, number> = {};
@@ -368,6 +369,9 @@ function MessageStats({ result }: { result: ParseResult }) {
         return { categoryCount, categoryBytes, sortedCategories, totalBytes, overhead, totalFieldBytes, bitmapBytes, mtiBytes, payloadPct, fixedCount, variableCount, largestField };
     }, [result]);
 
+    const statBoxStyle = { cursor: 'help', display: 'flex', flexDirection: 'column' as const, alignItems: 'center' as const, justifyContent: 'flex-end' as const, minHeight: isMobile ? 'auto' : 80 };
+    const ringSize = isMobile ? 48 : 64;
+
     return (
         <Paper className="brut-card" p="lg">
             <Group gap={6} mb="md">
@@ -376,10 +380,10 @@ function MessageStats({ result }: { result: ParseResult }) {
             </Group>
 
             {/* ── Quick Stats Row ── */}
-            <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md" mb="lg">
+            <SimpleGrid cols={{ base: 2, sm: 4 }} spacing={isMobile ? 'xs' : 'md'} mb="lg">
                 <Tooltip label="Total message size: MTI + Bitmap + all field data" withArrow>
-                    <Box style={{ cursor: 'help', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minHeight: 80 }}>
-                        <Text ff="JetBrains Mono, monospace" fw={800} size="xl" c="var(--ink-primary)">
+                    <Box style={statBoxStyle}>
+                        <Text ff="JetBrains Mono, monospace" fw={800} size={isMobile ? 'lg' : 'xl'} c="var(--ink-primary)">
                             {stats.totalBytes}
                         </Text>
                         <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
@@ -388,8 +392,8 @@ function MessageStats({ result }: { result: ParseResult }) {
                     </Box>
                 </Tooltip>
                 <Tooltip label={`${result.fields.length} data elements parsed from this message`} withArrow>
-                    <Box style={{ cursor: 'help', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minHeight: 80 }}>
-                        <Text ff="JetBrains Mono, monospace" fw={800} size="xl" c="var(--ink-primary)">
+                    <Box style={statBoxStyle}>
+                        <Text ff="JetBrains Mono, monospace" fw={800} size={isMobile ? 'lg' : 'xl'} c="var(--ink-primary)">
                             {result.fields.length}
                         </Text>
                         <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
@@ -398,8 +402,8 @@ function MessageStats({ result }: { result: ParseResult }) {
                     </Box>
                 </Tooltip>
                 <Tooltip label={`${stats.fixedCount} fixed-length + ${stats.variableCount} variable-length fields`} withArrow>
-                    <Box style={{ cursor: 'help', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minHeight: 80 }}>
-                        <Text ff="JetBrains Mono, monospace" fw={800} size="xl" c="var(--ink-primary)">
+                    <Box style={statBoxStyle}>
+                        <Text ff="JetBrains Mono, monospace" fw={800} size={isMobile ? 'lg' : 'xl'} c="var(--ink-primary)">
                             {stats.fixedCount}:{stats.variableCount}
                         </Text>
                         <Text size="xs" c="dimmed" tt="uppercase" fw={600} lts={0.5}>
@@ -408,10 +412,10 @@ function MessageStats({ result }: { result: ParseResult }) {
                     </Box>
                 </Tooltip>
                 <Tooltip label={`${stats.payloadPct}% of message bytes carry actual field data.\n${stats.overhead}B overhead (${stats.mtiBytes}B MTI + ${stats.bitmapBytes}B bitmap)\n${stats.totalFieldBytes}B field payload`} withArrow multiline w={260}>
-                    <Box style={{ cursor: 'help', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minHeight: 80 }}>
+                    <Box style={statBoxStyle}>
                         <RingProgress
-                            size={64}
-                            thickness={6}
+                            size={ringSize}
+                            thickness={isMobile ? 5 : 6}
                             rootColor="var(--border-subtle)"
                             sections={[
                                 { value: ((stats.overhead) / stats.totalBytes) * 100, color: '#3b82f6', tooltip: `Overhead: ${stats.overhead}B` },
@@ -444,15 +448,15 @@ function MessageStats({ result }: { result: ParseResult }) {
                         <Tooltip key={cat} label={`${getCategoryLabel(cat)}: ${count} field${count !== 1 ? 's' : ''} using ${bytes} bytes (${pct}% of payload)`} withArrow>
                             <Group gap="xs" wrap="nowrap" style={{ cursor: 'help' }}>
                                 <Box w={8} h={8} style={{ borderRadius: 2, background: CATEGORY_COLORS[cat], flexShrink: 0 }} />
-                                <Text size="xs" w={80} fw={500}>{getCategoryLabel(cat)}</Text>
+                                <Text size="xs" w={isMobile ? 55 : 80} fw={500} style={{ fontSize: isMobile ? 10 : undefined }}>{getCategoryLabel(cat)}</Text>
                                 <Progress
                                     value={pct}
                                     color={CATEGORY_COLORS[cat]}
-                                    size="md"
-                                    style={{ flex: 1 }}
+                                    size={isMobile ? 'sm' : 'md'}
+                                    style={{ flex: 1, minWidth: isMobile ? 40 : 60 }}
                                     radius="sm"
                                 />
-                                <Text size="xs" ff="monospace" w={56} ta="right" c="dimmed">{bytes}B</Text>
+                                <Text size="xs" ff="monospace" w={isMobile ? 40 : 56} ta="right" c="dimmed" style={{ fontSize: isMobile ? 10 : undefined }}>{bytes}B</Text>
                             </Group>
                         </Tooltip>
                     );
@@ -656,13 +660,14 @@ function HexAnnotator({ segments, highlightedDe, onFieldHover }: {
                 ))}
             </div>
             {/* Color Legend */}
-            <Group gap={8} mt="sm" wrap="wrap">
+            <Group gap={4} mt="sm" wrap="wrap">
                 {['mti', 'bitmap', 'identification', 'amount', 'processing', 'date_time', 'terminal', 'reference', 'network', 'security'].map(cat => (
                     <Badge
                         key={cat}
                         size="xs"
                         variant="light"
-                        leftSection={<Box w={8} h={8} style={{ borderRadius: 2, background: CATEGORY_COLORS[cat] }} />}
+                        styles={{ root: { fontSize: 9, height: 18, paddingLeft: 4, paddingRight: 6 } }}
+                        leftSection={<Box w={6} h={6} style={{ borderRadius: 2, background: CATEGORY_COLORS[cat] }} />}
                     >
                         {getCategoryLabel(cat)}
                     </Badge>
@@ -680,6 +685,7 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
     onFieldClick: (de: number) => void;
 }) {
     if (fields.length === 0) return null;
+    const isMobile = useMediaQuery('(max-width: 768px)');
     const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
 
     // Auto-scroll to highlighted field
@@ -702,8 +708,8 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
                             <Table.Th>DE</Table.Th>
                             <Table.Th>Field Name</Table.Th>
                             <Table.Th>Value</Table.Th>
-                            <Table.Th>Format</Table.Th>
-                            <Table.Th>Category</Table.Th>
+                            {!isMobile && <Table.Th>Format</Table.Th>}
+                            {!isMobile && <Table.Th>Category</Table.Th>}
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -724,41 +730,62 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
                                     }}
                                 >
                                     <Table.Td>
-                                        <Badge variant="filled" color="dark" size="sm" ff="JetBrains Mono, monospace">
-                                            {f.de}
-                                        </Badge>
+                                        <Group gap={4} wrap="nowrap">
+                                            <Badge variant="filled" color="dark" size="sm" ff="JetBrains Mono, monospace">
+                                                {f.de}
+                                            </Badge>
+                                            {isMobile && (
+                                                <Box
+                                                    w={6} h={6}
+                                                    style={{
+                                                        borderRadius: '50%',
+                                                        background: CATEGORY_COLORS[f.category],
+                                                        flexShrink: 0,
+                                                    }}
+                                                />
+                                            )}
+                                        </Group>
                                     </Table.Td>
                                     <Table.Td>
                                         <Text size="xs" fw={600}>{f.name}</Text>
-                                        {f.description && (
+                                        {!isMobile && f.description && (
                                             <Text size="xs" c="dimmed" mt={2}>{f.description}</Text>
                                         )}
                                     </Table.Td>
                                     <Table.Td>
-                                        <Text size="xs" ff="JetBrains Mono, monospace" style={{ wordBreak: 'break-all' }}>
+                                        <Text size="xs" ff="JetBrains Mono, monospace" style={{ wordBreak: 'break-all', fontSize: isMobile ? 10 : undefined }}>
                                             {f.de === 2 ? maskPAN(enrichValue(f.de, f.decodedValue)) : enrichValue(f.de, f.decodedValue)}
                                         </Text>
-                                        <Text size="xs" c="dimmed" mt={2} ff="JetBrains Mono, monospace">
+                                        <Text size="xs" c="dimmed" mt={2} ff="JetBrains Mono, monospace" style={{ fontSize: isMobile ? 9 : undefined }}>
                                             HEX: {f.rawHex}
                                         </Text>
+                                        {isMobile && (
+                                            <Text size="xs" c="dimmed" mt={2} ff="JetBrains Mono, monospace" style={{ fontSize: 9 }}>
+                                                {f.format} ({f.type})
+                                            </Text>
+                                        )}
                                     </Table.Td>
-                                    <Table.Td>
-                                        <Text size="xs" ff="JetBrains Mono, monospace">
-                                            {f.format} ({f.type})
-                                        </Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <span
-                                            className="category-pill"
-                                            style={{
-                                                background: `${CATEGORY_COLORS[f.category]}20`,
-                                                color: CATEGORY_COLORS[f.category],
-                                                border: `1px solid ${CATEGORY_COLORS[f.category]}40`,
-                                            }}
-                                        >
-                                            {getCategoryLabel(f.category)}
-                                        </span>
-                                    </Table.Td>
+                                    {!isMobile && (
+                                        <Table.Td>
+                                            <Text size="xs" ff="JetBrains Mono, monospace">
+                                                {f.format} ({f.type})
+                                            </Text>
+                                        </Table.Td>
+                                    )}
+                                    {!isMobile && (
+                                        <Table.Td>
+                                            <span
+                                                className="category-pill"
+                                                style={{
+                                                    background: `${CATEGORY_COLORS[f.category]}20`,
+                                                    color: CATEGORY_COLORS[f.category],
+                                                    border: `1px solid ${CATEGORY_COLORS[f.category]}40`,
+                                                }}
+                                            >
+                                                {getCategoryLabel(f.category)}
+                                            </span>
+                                        </Table.Td>
+                                    )}
                                 </Table.Tr>
                             );
                         })}
