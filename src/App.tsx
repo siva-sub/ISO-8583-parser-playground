@@ -820,8 +820,6 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
                                     key={f.de}
                                     ref={(el) => { rowRefs.current[f.de] = el; }}
                                     className="field-row"
-                                    onMouseEnter={() => onFieldHover(f.de)}
-                                    onMouseLeave={() => onFieldHover(null)}
                                     onClick={() => onFieldClick(f.de)}
                                     style={{
                                         background: isHighlighted ? 'var(--accent-warm-subtle, rgba(193,154,138,0.12))' : undefined,
@@ -1235,8 +1233,7 @@ export default function App() {
     }, []);
 
     const handleFieldHover = useCallback((de: number | null) => {
-        if (de !== null) setHighlightedDe(de);
-        else setHighlightedDe(null);
+        setHighlightedDe(de);
     }, []);
 
     const getMTIIcon = (mti: string) => {
