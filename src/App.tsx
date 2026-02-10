@@ -733,6 +733,14 @@ function HexAnnotator({ segments, highlightedDe, onFieldHover }: {
     onFieldHover: (de: number | null) => void;
 }) {
     if (segments.length === 0) return null;
+    const segRefs = useRef<Record<number, HTMLSpanElement | null>>({});
+
+    // Auto-scroll to highlighted hex segment
+    useEffect(() => {
+        if (highlightedDe !== null && segRefs.current[highlightedDe]) {
+            segRefs.current[highlightedDe]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [highlightedDe]);
 
     return (
         <Box>
@@ -745,6 +753,7 @@ function HexAnnotator({ segments, highlightedDe, onFieldHover }: {
                 {segments.map((seg, i) => (
                     <Tooltip key={i} label={seg.label} withArrow>
                         <span
+                            ref={(el) => { if (seg.de !== undefined) segRefs.current[seg.de] = el; }}
                             className={`hex-segment cat-${seg.category}`}
                             onClick={() => seg.de !== undefined && onFieldHover(highlightedDe === seg.de ? null : seg.de)}
                             style={{
@@ -788,10 +797,10 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
     const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
     const { lookup: lookupBin } = useBinData();
 
-    // Auto-scroll to highlighted field
+    // Auto-scroll to highlighted field (center it)
     useEffect(() => {
         if (highlightedDe !== null && rowRefs.current[highlightedDe]) {
-            rowRefs.current[highlightedDe]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            rowRefs.current[highlightedDe]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, [highlightedDe]);
 
