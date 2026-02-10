@@ -83,7 +83,7 @@ function buildAuthRequest(): string {
     const fields = [2, 3, 4, 7, 11, 12, 13, 14, 22, 25, 41, 42, 43, 49];
     const bitmap = buildBitmap(fields);
 
-    const de2 = '16' + '4111111111111111';   // LLVAR: len=16, 16-digit PAN
+    const de2 = '16' + '4242424242424242';   // LLVAR: len=16, Visa BIN=424242 (Stripe test card, Luhn ✓)
     const de3 = '000000';                     // Processing code: Purchase
     const de4 = '000000000500';               // Amount: $5.00 (500 cents, 12 digits)
     const de7 = '0210120000';                 // Transmission: MMDDhhmmss (10 digits)
@@ -106,7 +106,7 @@ function buildAuthResponseApproved(): string {
     const fields = [2, 3, 4, 7, 11, 12, 13, 37, 38, 39, 41, 49];
     const bitmap = buildBitmap(fields);
 
-    const de2 = '16' + '4111111111111111';
+    const de2 = '16' + '4242424242424242';   // Visa BIN=424242 (Luhn ✓)
     const de3 = '000000';
     const de4 = '000000000500';
     const de7 = '0210120001';
@@ -127,7 +127,7 @@ function buildAuthResponseDeclined(): string {
     const fields = [2, 3, 4, 7, 11, 12, 13, 37, 38, 39, 41, 49];
     const bitmap = buildBitmap(fields);
 
-    const de2 = '16' + '4111111111111111';
+    const de2 = '16' + '4242424242424242';   // Visa BIN=424242 (Luhn ✓)
     const de3 = '000000';
     const de4 = '000000000500';
     const de7 = '0210120001';
@@ -148,7 +148,7 @@ function buildReversal(): string {
     const fields = [2, 3, 4, 7, 11, 12, 13, 37, 39, 41, 49];
     const bitmap = buildBitmap(fields);
 
-    const de2 = '16' + '4111111111111111';
+    const de2 = '16' + '5555555555554444';   // Mastercard BIN=555555 (Luhn ✓)
     const de3 = '000000';
     const de4 = '000000000500';
     const de7 = '0210120500';

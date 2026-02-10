@@ -85,6 +85,105 @@ function getCategoryLabel(cat: string): string {
     return CATEGORY_LABELS[cat] || cat.toUpperCase();
 }
 
+// ─── Luhn Validator ────────────────────────────────────────────────
+function validateLuhn(cardNumber: string): boolean {
+    const digits = cardNumber.replace(/\D/g, '');
+    if (digits.length < 13 || digits.length > 19) return false;
+    let sum = 0;
+    let isEven = false;
+    for (let i = digits.length - 1; i >= 0; i--) {
+        let d = parseInt(digits[i], 10);
+        if (isEven) { d *= 2; if (d > 9) d -= 9; }
+        sum += d;
+        isEven = !isEven;
+    }
+    return sum % 10 === 0;
+}
+
+// ─── BIN Data Lookup ───────────────────────────────────────────────
+interface BinInfo {
+    brand: string;
+    type: string;
+    category: string;
+    issuer: string;
+    country: string;
+}
+
+let binDataCache: Map<string, BinInfo> | null = null;
+let binDataLoading = false;
+const binDataListeners: Array<() => void> = [];
+
+function useBinData() {
+    const [binMap, setBinMap] = useState<Map<string, BinInfo> | null>(binDataCache);
+
+    useEffect(() => {
+        if (binDataCache) { setBinMap(binDataCache); return; }
+        if (binDataLoading) {
+            const listener = () => setBinMap(binDataCache);
+            binDataListeners.push(listener);
+            return () => { const idx = binDataListeners.indexOf(listener); if (idx >= 0) binDataListeners.splice(idx, 1); };
+        }
+        binDataLoading = true;
+        const basePath = import.meta.env.BASE_URL || '/';
+        fetch(`${basePath}bin-list-data.csv`, { cache: 'force-cache' })
+            .then(res => res.text())
+            .then(data => {
+                const rows = data.split('\n').filter(r => r.trim());
+                const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                const map = new Map<string, BinInfo>();
+                const idxBIN = headers.indexOf('BIN');
+                const idxBrand = headers.indexOf('Brand');
+                const idxType = headers.indexOf('Type');
+                const idxCategory = headers.indexOf('Category');
+                const idxIssuer = headers.indexOf('Issuer');
+                const idxCountry = headers.indexOf('CountryName');
+
+                for (let i = 1; i < rows.length; i++) {
+                    // Parse CSV with quoted fields
+                    const cols: string[] = [];
+                    let current = '', inQuotes = false;
+                    for (const ch of rows[i]) {
+                        if (ch === '"') { inQuotes = !inQuotes; }
+                        else if (ch === ',' && !inQuotes) { cols.push(current.trim()); current = ''; }
+                        else { current += ch; }
+                    }
+                    cols.push(current.trim());
+
+                    const bin = cols[idxBIN];
+                    if (bin) {
+                        map.set(bin, {
+                            brand: cols[idxBrand] || 'Unknown',
+                            type: cols[idxType] || 'Unknown',
+                            category: cols[idxCategory] || 'Unknown',
+                            issuer: cols[idxIssuer] || 'Unknown',
+                            country: cols[idxCountry] || 'Unknown',
+                        });
+                    }
+                }
+                binDataCache = map;
+                setBinMap(map);
+                binDataListeners.forEach(fn => fn());
+                binDataListeners.length = 0;
+                binDataLoading = false;
+            })
+            .catch(() => { binDataLoading = false; });
+    }, []);
+
+    const lookup = useCallback((pan: string): BinInfo | null => {
+        if (!binMap) return null;
+        const digits = pan.replace(/\D/g, '');
+        // Try 8, 7, 6 digit BIN prefix (most specific first)
+        for (const len of [8, 7, 6]) {
+            const prefix = digits.substring(0, len);
+            const info = binMap.get(prefix);
+            if (info) return info;
+        }
+        return null;
+    }, [binMap]);
+
+    return { lookup, loading: !binMap && binDataLoading };
+}
+
 // ─── MTI Dictionary (from moov-io/iso8583 constant.go) ────────────
 const MTI_DESCRIPTIONS: Record<string, string> = {
     '0100': 'Authorization Request',
@@ -687,6 +786,7 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
     if (fields.length === 0) return null;
     const isMobile = useMediaQuery('(max-width: 768px)');
     const rowRefs = useRef<Record<number, HTMLTableRowElement | null>>({});
+    const { lookup: lookupBin } = useBinData();
 
     // Auto-scroll to highlighted field
     useEffect(() => {
@@ -756,6 +856,44 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
                                         <Text size="xs" ff="JetBrains Mono, monospace" style={{ wordBreak: 'break-all', fontSize: isMobile ? 10 : undefined }}>
                                             {f.de === 2 ? maskPAN(enrichValue(f.de, f.decodedValue)) : enrichValue(f.de, f.decodedValue)}
                                         </Text>
+                                        {f.de === 2 && (() => {
+                                            const rawPan = f.decodedValue.replace(/\D/g, '');
+                                            const luhnValid = validateLuhn(rawPan);
+                                            const binInfo = lookupBin(rawPan);
+                                            return (
+                                                <Box mt={4}>
+                                                    <Group gap={4} mb={4}>
+                                                        <Badge
+                                                            size="xs"
+                                                            variant="light"
+                                                            color={luhnValid ? 'green' : 'red'}
+                                                            leftSection={luhnValid ? <IconCheck size={10} /> : <IconX size={10} />}
+                                                        >
+                                                            Luhn {luhnValid ? 'Valid' : 'Invalid'}
+                                                        </Badge>
+                                                    </Group>
+                                                    {binInfo && (
+                                                        <Box
+                                                            p={6}
+                                                            mt={4}
+                                                            style={{
+                                                                background: 'var(--surface-1, rgba(0,0,0,0.03))',
+                                                                borderRadius: 6,
+                                                                border: '1px solid var(--border-standard)',
+                                                                fontSize: isMobile ? 9 : 11,
+                                                            }}
+                                                        >
+                                                            <Text size="xs" fw={600} mb={2} style={{ fontSize: isMobile ? 10 : 11 }}>BIN: {rawPan.substring(0, 6)}</Text>
+                                                            <Text size="xs" c="dimmed" style={{ fontSize: isMobile ? 9 : 11 }}>Brand: {binInfo.brand}</Text>
+                                                            <Text size="xs" c="dimmed" style={{ fontSize: isMobile ? 9 : 11 }}>Type: {binInfo.type}</Text>
+                                                            <Text size="xs" c="dimmed" style={{ fontSize: isMobile ? 9 : 11 }}>Category: {binInfo.category}</Text>
+                                                            <Text size="xs" c="dimmed" style={{ fontSize: isMobile ? 9 : 11 }}>Issuer: {binInfo.issuer}</Text>
+                                                            <Text size="xs" c="dimmed" style={{ fontSize: isMobile ? 9 : 11 }}>Country: {binInfo.country}</Text>
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                            );
+                                        })()}
                                         <Text size="xs" c="dimmed" mt={2} ff="JetBrains Mono, monospace" style={{ fontSize: isMobile ? 9 : undefined }}>
                                             HEX: {f.rawHex}
                                         </Text>
