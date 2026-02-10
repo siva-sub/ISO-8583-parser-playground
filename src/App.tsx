@@ -705,7 +705,7 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
                 <Table striped highlightOnHover withTableBorder withColumnBorders fz="xs">
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th>DE</Table.Th>
+                            <Table.Th w={isMobile ? 55 : 50}>DE</Table.Th>
                             <Table.Th>Field Name</Table.Th>
                             <Table.Th>Value</Table.Th>
                             {!isMobile && <Table.Th>Format</Table.Th>}
@@ -729,9 +729,9 @@ function FieldTable({ fields, highlightedDe, onFieldHover, onFieldClick }: {
                                         transition: 'background 0.15s ease',
                                     }}
                                 >
-                                    <Table.Td>
+                                    <Table.Td style={{ whiteSpace: 'nowrap' }}>
                                         <Group gap={4} wrap="nowrap">
-                                            <Badge variant="filled" color="dark" size="sm" ff="JetBrains Mono, monospace">
+                                            <Badge variant="filled" color="dark" size="sm" ff="JetBrains Mono, monospace" style={{ minWidth: 28 }}>
                                                 {f.de}
                                             </Badge>
                                             {isMobile && (
